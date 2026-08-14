@@ -3,7 +3,9 @@ Translator: the per-session orchestrator that ties together
 FrameProcessor -> LandmarkDetector -> GestureSequenceBuffer ->
 GestureRecognizer -> HistoryManager. One Translator instance is created
 per WebSocket connection (see routers/websocket_router.py) so different
-users' buffers never mix.
+users' buffers never mix - but it shares one process-wide LandmarkDetector
+(MediaPipe graphs are too memory-heavy to create per connection, see
+services/landmark_detector.py).
 """
 from __future__ import annotations
 
@@ -11,7 +13,7 @@ from models.schemas import GestureRecognitionResult, SignLanguage
 from services.frame_processor import FrameDecodeError, FrameProcessor
 from services.gesture_recognizer import GestureRecognizer
 from services.history_manager import HistoryManager
-from services.landmark_detector import LandmarkDetector
+from services.landmark_detector import get_shared_landmark_detector
 from utils.logger import logger
 
 
@@ -21,7 +23,7 @@ class Translator:
     def __init__(self, language: SignLanguage = SignLanguage.RSL) -> None:
         self.language = language
         self._frame_processor = FrameProcessor()
-        self._landmark_detector = LandmarkDetector()
+        self._landmark_detector = get_shared_landmark_detector()
         self._recognizer = GestureRecognizer()
         self._history = HistoryManager()
 
@@ -56,4 +58,6 @@ class Translator:
         return self._recognizer.last_error
 
     def close(self) -> None:
-        self._landmark_detector.close()
+        # Intentionally does NOT close the shared LandmarkDetector - it
+        # outlives individual connections. See main.py shutdown handler.
+        pass

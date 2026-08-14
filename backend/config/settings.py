@@ -28,8 +28,8 @@ class Config(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # --- Gesture sequence buffer ---
-    sequence_window_min: int = 30
-    sequence_window_max: int = 120
+    sequence_window_min: int = 40
+    sequence_window_max: int = 90
     frame_sample_rate: int = 2  # process every Nth frame to save CPU
 
     # --- MediaPipe ---
@@ -37,6 +37,12 @@ class Config(BaseSettings):
     mp_hands_min_detection_confidence: float = 0.6
     mp_hands_min_tracking_confidence: float = 0.5
     mp_pose_min_detection_confidence: float = 0.6
+    # 0 = "lite" model (~10x lighter than complexity=1) - critical on
+    # memory-constrained hosting like Render's free tier (512MB).
+    mp_pose_model_complexity: int = 0
+    # Frame width MediaPipe actually processes - frames are downscaled to
+    # this before detection, independent of the camera's native resolution.
+    frame_target_width: int = 480
 
     # --- History ---
     history_db_path: str = "./data/history.db"

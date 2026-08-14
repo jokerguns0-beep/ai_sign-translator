@@ -11,7 +11,10 @@ import base64
 import cv2
 import numpy as np
 
+from config.settings import get_config
 from utils.logger import logger
+
+_config = get_config()
 
 
 class FrameDecodeError(Exception):
@@ -21,8 +24,8 @@ class FrameDecodeError(Exception):
 class FrameProcessor:
     """Stateless helper that decodes and normalizes incoming video frames."""
 
-    def __init__(self, target_width: int = 640) -> None:
-        self.target_width = target_width
+    def __init__(self, target_width: int | None = None) -> None:
+        self.target_width = target_width or _config.frame_target_width
 
     def decode_base64_frame(self, data_url: str) -> np.ndarray:
         """Decode a base64 data-URL (``data:image/jpeg;base64,...``) into a

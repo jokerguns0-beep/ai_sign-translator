@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import get_config
 from routers import history_router, websocket_router
+from services.landmark_detector import close_shared_landmark_detector
 from utils.logger import logger
 
 config = get_config()
@@ -30,9 +31,6 @@ app.add_middleware(
 app.include_router(websocket_router.router)
 app.include_router(history_router.router)
 
-@app.get("/")
-async def read_root():
-    return {"message": "Бэкенд AI Sign Language Translator успешно запущен!"}
 
 @app.get("/api/health")
 async def health() -> dict:
@@ -46,4 +44,5 @@ async def on_startup() -> None:
 
 @app.on_event("shutdown")
 async def on_shutdown() -> None:
+    close_shared_landmark_detector()
     logger.info("AI Sign Language Translator API shutting down")

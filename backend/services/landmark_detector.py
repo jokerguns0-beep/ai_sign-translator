@@ -37,7 +37,7 @@ class LandmarkDetector:
         self._pose = mp.solutions.pose.Pose(
             static_image_mode=False,
             min_detection_confidence=_config.mp_pose_min_detection_confidence,
-            model_complexity=1,
+            model_complexity=_config.mp_pose_model_complexity,
         )
         logger.info("LandmarkDetector initialized (MediaPipe Hands + Pose)")
 
@@ -75,3 +75,34 @@ class LandmarkDetector:
         self._hands.close()
         self._pose.close()
         logger.info("LandmarkDetector released MediaPipe resources")
+
+
+_shared_detector: LandmarkDetector | None = None
+
+
+def get_shared_landmark_detector() -> LandmarkDetector:
+    """Return a process-wide singleton LandmarkDetector.
+
+    Creating a new MediaPipe Hands+Pose graph per WebSocket connection is
+    what blew past Render's 512MB free-tier limit in practice - each pair
+    of graphs costs real memory, and a burst of connections (or even just
+    reconnects during testing) multiplies that. A shared instance keeps
+    memory flat regardless of how many sessions connect over time.
+
+    Trade-off: MediaPipe's internal temporal smoothing is no longer
+    scoped per-session, so frames from two truly concurrent users could
+    theoretically influence each other's tracking smoothness for a
+    frame or two. Acceptable for this project's scale; revisit with a
+    small per-worker pool if concurrent multi-user usage becomes real.
+    """
+    global _shared_detector
+    if _shared_detector is None:
+        _shared_detector = LandmarkDetector()
+    return _shared_detector
+
+
+def close_shared_landmark_detector() -> None:
+    global _shared_detector
+    if _shared_detector is not None:
+        _shared_detector.close()
+        _shared_detector = None
