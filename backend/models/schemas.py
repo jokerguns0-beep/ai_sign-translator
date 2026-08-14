@@ -59,6 +59,7 @@ class GestureRecognitionResult(BaseModel):
     predicted_phrase: str | None = None
     alternatives: list[GestureAlternative] = Field(default_factory=list)
     language: SignLanguage = SignLanguage.RSL
+    confirmed: bool = True  # passed consensus check (see GestureRecognizer) - False means "tentative"
 
 
 class WSMessageType(str, Enum):

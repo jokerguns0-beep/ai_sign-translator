@@ -12,6 +12,7 @@ export interface GestureRecognitionResult {
   predicted_phrase: string | null;
   alternatives: GestureAlternative[];
   language: SignLanguage;
+  confirmed: boolean;
 }
 
 export type WSMessageType = "landmarks" | "transcript" | "status" | "error" | "set_language";

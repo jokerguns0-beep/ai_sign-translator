@@ -45,7 +45,7 @@ class Translator:
         self._recognizer.buffer.add(landmarks)
 
         result = await self._recognizer.maybe_recognize(self.language)
-        if result and (result.predicted_phrase or result.predicted_word):
+        if result and result.confirmed and (result.predicted_phrase or result.predicted_word):
             text = result.predicted_phrase or result.predicted_word or ""
             self._history.add(text=text, language=self.language, confidence=result.confidence)
         return result

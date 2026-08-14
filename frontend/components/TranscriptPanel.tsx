@@ -6,6 +6,7 @@ import type { TranscriptItem } from "@/lib/types";
 interface TranscriptPanelProps {
   currentText: string;
   currentConfidence: number;
+  isConfirmed: boolean;
   history: TranscriptItem[];
   onClear: () => void;
   onCopy: () => void;
@@ -14,6 +15,7 @@ interface TranscriptPanelProps {
 export default function TranscriptPanel({
   currentText,
   currentConfidence,
+  isConfirmed,
   history,
   onClear,
   onCopy,
@@ -41,9 +43,13 @@ export default function TranscriptPanel({
       <div className="min-h-[88px] rounded-xl bg-graphite-950 border border-graphite-700 p-4 flex flex-col justify-center">
         {currentText ? (
           <>
-            <p className="font-display text-2xl text-white leading-snug">{currentText}</p>
-            <p className="font-mono text-xs text-signal-teal mt-2">
-              уверенность: {(currentConfidence * 100).toFixed(0)}%
+            <p className={`font-display text-2xl leading-snug ${isConfirmed ? "text-white" : "text-graphite-600"}`}>
+              {currentText}
+            </p>
+            <p className={`font-mono text-xs mt-2 ${isConfirmed ? "text-signal-teal" : "text-signal-amber"}`}>
+              {isConfirmed
+                ? `уверенность: ${(currentConfidence * 100).toFixed(0)}%`
+                : `уточняю… (${(currentConfidence * 100).toFixed(0)}%)`}
             </p>
           </>
         ) : (

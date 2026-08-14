@@ -15,6 +15,7 @@ export default function Home() {
   const [currentConfidence, setCurrentConfidence] = useState(0);
   const [history, setHistory] = useState<TranscriptItem[]>([]);
   const [backendError, setBackendError] = useState<string | null>(null);
+  const [isConfirmed, setIsConfirmed] = useState(true);
 
   const speech = useSpeech();
 
@@ -25,8 +26,11 @@ export default function Home() {
       setBackendError(null);
       setCurrentText(text);
       setCurrentConfidence(result.confidence);
-      setHistory((prev) => [{ id: crypto.randomUUID(), text, confidence: result.confidence, timestamp: Date.now() }, ...prev].slice(0, 50));
-      speech.speak(text);
+      setIsConfirmed(result.confirmed);
+      if (result.confirmed) {
+        setHistory((prev) => [{ id: crypto.randomUUID(), text, confidence: result.confidence, timestamp: Date.now() }, ...prev].slice(0, 50));
+        speech.speak(text);
+      }
     },
     [speech]
   );
@@ -96,6 +100,7 @@ export default function Home() {
           <TranscriptPanel
             currentText={currentText}
             currentConfidence={currentConfidence}
+            isConfirmed={isConfirmed}
             history={history}
             onClear={clearTranscript}
             onCopy={copyTranscript}
