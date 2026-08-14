@@ -40,19 +40,23 @@ export function useWebSocket({ onTranscript, onError }: UseWebSocketOptions) {
     socket.onopen = () => setStatus("ready");
     socket.onerror = () => setStatus("error");
     socket.onclose = () => setStatus("idle");
-    socket.onmessage = (event) => {
+    socket.onmessage = (event: MessageEvent<any>): void => {
       try {
         const message: WSMessage = JSON.parse(event.data);
         if (message.type === "transcript") {
-          onTranscript(message.payload as GestureRecognitionResult);
+          try {
+            onTranscript(message.payload as GestureRecognitionResult);
+          } catch (err) {
+            onError?.(`handleTranscript crashed: ${err instanceof Error ? err.message : String(err)}`);
+          }
         } else if (message.type === "status") {
           setStatus("ready");
         } else if (message.type === "error") {
           const payload = message.payload as { message?: string };
           if (payload?.message) onError?.(payload.message);
         }
-      } catch {
-        // Ignore malformed frames rather than crashing the session.
+      } catch (err) {
+        onError?.(`Failed to parse WS message: ${err instanceof Error ? err.message : String(err)}. Raw: ${String(event.data).slice(0, 200)}`);
       }
     };
 
