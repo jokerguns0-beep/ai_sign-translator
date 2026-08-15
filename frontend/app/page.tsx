@@ -16,8 +16,15 @@ export default function Home() {
   const [history, setHistory] = useState<TranscriptItem[]>([]);
   const [backendError, setBackendError] = useState<string | null>(null);
   const [isConfirmed, setIsConfirmed] = useState(true);
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
 
   const speech = useSpeech();
+
+  const logEvent = useCallback((event: string) => {
+    const time = new Date().toLocaleTimeString("ru-RU", { hour12: false });
+    setDebugLog((prev) => [`${time} — ${event}`, ...prev].slice(0, 40));
+  }, []);
 
   const handleTranscript = useCallback(
     (result: GestureRecognitionResult) => {
@@ -38,6 +45,7 @@ export default function Home() {
   const { status, connect, disconnect, sendFrame, setLanguage: sendLanguage } = useWebSocket({
     onTranscript: handleTranscript,
     onError: setBackendError,
+    onEvent: logEvent,
   });
 
   const toggleStreaming = () => {
@@ -67,12 +75,39 @@ export default function Home() {
 
   return (
     <main className="min-h-screen px-4 py-6 md:px-8 md:py-10 max-w-7xl mx-auto">
-      <header className="mb-8">
-        <p className="font-mono text-xs text-signal-teal uppercase tracking-widest mb-2">
-          Перевод жестового языка · в реальном времени
-        </p>
-        <h1 className="font-display text-3xl md:text-4xl font-medium">AI Sign Language Translator</h1>
+      <header className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-xs text-signal-teal uppercase tracking-widest mb-2">
+            Перевод жестового языка · в реальном времени
+          </p>
+          <h1 className="font-display text-3xl md:text-4xl font-medium">AI Sign Language Translator</h1>
+        </div>
+        <button
+          onClick={() => setShowDebug((v) => !v)}
+          className="shrink-0 text-xs font-mono px-3 py-2 rounded-lg bg-graphite-900 border border-graphite-700 text-graphite-600 hover:text-signal-teal"
+        >
+          {showDebug ? "Скрыть журнал" : "Журнал соединения"}
+        </button>
       </header>
+
+      {showDebug && (
+        <div className="mb-6 rounded-xl border border-graphite-700 bg-graphite-950 p-4 max-h-64 overflow-y-auto">
+          <p className="font-mono text-[11px] text-graphite-600 uppercase tracking-wide mb-2 sticky top-0">
+            Журнал WebSocket-соединения (для диагностики)
+          </p>
+          {debugLog.length === 0 ? (
+            <p className="font-mono text-xs text-graphite-700">Пока пусто — запусти камеру</p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {debugLog.map((line, i) => (
+                <li key={i} className="font-mono text-[11px] text-graphite-600 break-all">
+                  {line}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {backendError && (
         <div className="mb-6 rounded-xl border border-signal-coral/40 bg-signal-coral/10 px-4 py-3 text-sm text-signal-coral font-body">

@@ -20,6 +20,7 @@ const WS_URL = resolveWsUrl();
 interface UseWebSocketOptions {
   onTranscript: (result: GestureRecognitionResult) => void;
   onError?: (message: string) => void;
+  onEvent?: (event: string) => void;
 }
 
 /**
@@ -27,7 +28,7 @@ interface UseWebSocketOptions {
  * send frames, dispatch incoming transcript/status/error messages, and
  * reconnect gracefully if the connection drops mid-session.
  */
-export function useWebSocket({ onTranscript, onError }: UseWebSocketOptions) {
+export function useWebSocket({ onTranscript, onError, onEvent }: UseWebSocketOptions) {
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -35,20 +36,27 @@ export function useWebSocket({ onTranscript, onError }: UseWebSocketOptions) {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) return;
 
     setStatus("connecting");
+    onEvent?.(`подключаюсь к ${WS_URL}`);
     const socket = new WebSocket(WS_URL);
 
-    socket.onopen = () => setStatus("ready");
-    socket.onerror = () => setStatus("error");
-    socket.onclose = () => setStatus("idle");
-    socket.onmessage = (event: MessageEvent<any>): void => {
+    socket.onopen = () => {
+      setStatus("ready");
+      onEvent?.("сокет открыт");
+    };
+    socket.onerror = () => {
+      setStatus("error");
+      onEvent?.("ошибка сокета (см. code в onclose)");
+    };
+    socket.onclose = (event) => {
+      setStatus("idle");
+      onEvent?.(`сокет закрыт: code=${event.code} reason="${event.reason || "—"}" clean=${event.wasClean}`);
+    };
+    socket.onmessage = (event) => {
       try {
         const message: WSMessage = JSON.parse(event.data);
+        onEvent?.(`получено: type=${message.type}`);
         if (message.type === "transcript") {
-          try {
-            onTranscript(message.payload as GestureRecognitionResult);
-          } catch (err) {
-            onError?.(`handleTranscript crashed: ${err instanceof Error ? err.message : String(err)}`);
-          }
+          onTranscript(message.payload as GestureRecognitionResult);
         } else if (message.type === "status") {
           setStatus("ready");
         } else if (message.type === "error") {
@@ -56,12 +64,12 @@ export function useWebSocket({ onTranscript, onError }: UseWebSocketOptions) {
           if (payload?.message) onError?.(payload.message);
         }
       } catch (err) {
-        onError?.(`Failed to parse WS message: ${err instanceof Error ? err.message : String(err)}. Raw: ${String(event.data).slice(0, 200)}`);
+        onEvent?.(`не смог разобрать сообщение: ${err}`);
       }
     };
 
     socketRef.current = socket;
-  }, [onTranscript]);
+  }, [onTranscript, onError, onEvent]);
 
   const disconnect = useCallback(() => {
     socketRef.current?.close();
