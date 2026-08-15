@@ -16,6 +16,7 @@ function resolveWsUrl(): string {
 }
 
 const WS_URL = resolveWsUrl();
+const RECONNECT_DELAY_MS = 800;
 
 interface UseWebSocketOptions {
   onTranscript: (result: GestureRecognitionResult) => void;
@@ -26,15 +27,23 @@ interface UseWebSocketOptions {
 /**
  * Owns the lifecycle of the translation WebSocket: connect on demand,
  * send frames, dispatch incoming transcript/status/error messages, and
- * reconnect gracefully if the connection drops mid-session.
+ * reconnect automatically if the connection drops mid-session (Render's
+ * free tier proxy closes idle-looking WS connections after ~50s).
  */
 export function useWebSocket({ onTranscript, onError, onEvent }: UseWebSocketOptions) {
   const [status, setStatus] = useState<ConnectionStatus>("idle");
   const socketRef = useRef<WebSocket | null>(null);
+  const wantConnectedRef = useRef(false);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const connect = useCallback(() => {
-    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) return;
+  const clearReconnectTimer = () => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  };
 
+  const openSocket = useCallback(() => {
     setStatus("connecting");
     onEvent?.(`подключаюсь к ${WS_URL}`);
     const socket = new WebSocket(WS_URL);
@@ -44,12 +53,22 @@ export function useWebSocket({ onTranscript, onError, onEvent }: UseWebSocketOpt
       onEvent?.("сокет открыт");
     };
     socket.onerror = () => {
-      setStatus("error");
       onEvent?.("ошибка сокета (см. code в onclose)");
     };
     socket.onclose = (event) => {
-      setStatus("idle");
       onEvent?.(`сокет закрыт: code=${event.code} reason="${event.reason || "—"}" clean=${event.wasClean}`);
+      socketRef.current = null;
+
+      if (wantConnectedRef.current) {
+        // Unintended drop (Render free-tier proxy timeout etc.) — reconnect quietly.
+        setStatus("connecting");
+        clearReconnectTimer();
+        reconnectTimerRef.current = setTimeout(() => {
+          if (wantConnectedRef.current) openSocket();
+        }, RECONNECT_DELAY_MS);
+      } else {
+        setStatus("idle");
+      }
     };
     socket.onmessage = (event) => {
       try {
@@ -71,7 +90,16 @@ export function useWebSocket({ onTranscript, onError, onEvent }: UseWebSocketOpt
     socketRef.current = socket;
   }, [onTranscript, onError, onEvent]);
 
+  const connect = useCallback(() => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) return;
+    wantConnectedRef.current = true;
+    clearReconnectTimer();
+    openSocket();
+  }, [openSocket]);
+
   const disconnect = useCallback(() => {
+    wantConnectedRef.current = false;
+    clearReconnectTimer();
     socketRef.current?.close();
     socketRef.current = null;
     setStatus("idle");
@@ -91,7 +119,14 @@ export function useWebSocket({ onTranscript, onError, onEvent }: UseWebSocketOpt
     }
   }, []);
 
-  useEffect(() => () => socketRef.current?.close(), []);
+  useEffect(
+    () => () => {
+      wantConnectedRef.current = false;
+      clearReconnectTimer();
+      socketRef.current?.close();
+    },
+    []
+  );
 
   return { status, connect, disconnect, sendFrame, setLanguage };
 }
