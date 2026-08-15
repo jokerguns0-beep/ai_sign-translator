@@ -28,8 +28,8 @@ class Config(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # --- Gesture sequence buffer ---
-    sequence_window_min: int = 40
-    sequence_window_max: int = 90
+    sequence_window_min: int = 15
+    sequence_window_max: int = 25
     frame_sample_rate: int = 2  # process every Nth frame to save CPU
 
     # --- MediaPipe ---
