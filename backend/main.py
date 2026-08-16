@@ -34,12 +34,15 @@ app.include_router(history_router.router)
 
 @app.get("/api/health")
 async def health() -> dict:
-    return {"status": "ok", "env": config.app_env}
+    return {"status": "ok", "env": config.app_env, "gemini_model": config.gemini_model}
 
 
 @app.on_event("startup")
 async def on_startup() -> None:
-    logger.info(f"AI Sign Language Translator API starting (env={config.app_env})")
+    logger.info(
+        f"AI Sign Language Translator API starting (env={config.app_env}, "
+        f"gemini_model={config.gemini_model!r}, pose_enabled={config.mp_pose_enabled})"
+    )
 
 
 @app.on_event("shutdown")
