@@ -9,6 +9,8 @@ services/landmark_detector.py).
 """
 from __future__ import annotations
 
+import asyncio
+
 from models.schemas import GestureRecognitionResult, SignLanguage
 from services.frame_processor import FrameDecodeError, FrameProcessor
 from services.gesture_recognizer import GestureRecognizer
@@ -43,7 +45,15 @@ class Translator:
             return None
 
         rgb = self._frame_processor.preprocess(image)
-        landmarks = self._landmark_detector.detect(rgb)
+        # MediaPipe inference is CPU-bound and can take a noticeable
+        # fraction of a second on constrained hosting (e.g. Render's free
+        # tier gives ~0.1 CPU). Running it inline would block this
+        # process's single event loop - including responses to WebSocket
+        # ping/pong keepalives - for the whole duration, which can look
+        # like a hung connection to the platform and get it dropped.
+        # asyncio.to_thread lets the event loop keep servicing other work
+        # (including keepalives) while detection runs.
+        landmarks = await asyncio.to_thread(self._landmark_detector.detect, rgb)
         self._recognizer.buffer.add(landmarks)
 
         result = await self._recognizer.maybe_recognize(self.language)

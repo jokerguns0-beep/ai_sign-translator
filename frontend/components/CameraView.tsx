@@ -128,8 +128,13 @@ export default function CameraView({ active, onFrame, captureIntervalMs = 120 }:
       counter.last = now;
     }
 
-    // Throttled frame capture -> backend
-    if (now - lastCaptureRef.current >= captureIntervalMs) {
+    // Throttled frame capture -> backend, only while a hand is actually
+    // visible. The backend's CPU is the bottleneck (esp. on constrained
+    // free-tier hosting), so skipping empty frames here - rather than
+    // making the backend decode+run MediaPipe on them just to discard
+    // them - is the single biggest lever for faster, cheaper recognition.
+    const handVisible = (result.landmarks?.length ?? 0) > 0;
+    if (handVisible && now - lastCaptureRef.current >= captureIntervalMs) {
       lastCaptureRef.current = now;
       const captureCanvas = document.createElement("canvas");
       captureCanvas.width = video.videoWidth;

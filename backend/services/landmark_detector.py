@@ -34,20 +34,22 @@ class LandmarkDetector:
             min_detection_confidence=_config.mp_hands_min_detection_confidence,
             min_tracking_confidence=_config.mp_hands_min_tracking_confidence,
         )
-        self._pose = mp.solutions.pose.Pose(
-            static_image_mode=False,
-            min_detection_confidence=_config.mp_pose_min_detection_confidence,
-            model_complexity=_config.mp_pose_model_complexity,
+        self._pose = (
+            mp.solutions.pose.Pose(
+                static_image_mode=False,
+                min_detection_confidence=_config.mp_pose_min_detection_confidence,
+                model_complexity=_config.mp_pose_model_complexity,
+            )
+            if _config.mp_pose_enabled
+            else None
         )
-        logger.info("LandmarkDetector initialized (MediaPipe Hands + Pose)")
+        logger.info(f"LandmarkDetector initialized (Hands{' + Pose' if self._pose else ' only'})")
 
     def detect(self, rgb_image: np.ndarray) -> FrameLandmarks:
-        """Run both solutions on a single RGB frame and return combined
-        landmark data. Frames with no detected hands still return pose
-        data (useful for framing/quality feedback in the UI).
+        """Run Hands (and Pose, if enabled) on a single RGB frame and
+        return combined landmark data.
         """
         hands_result = self._hands.process(rgb_image)
-        pose_result = self._pose.process(rgb_image)
 
         hands: list[HandLandmarks] = []
         if hands_result.multi_hand_landmarks and hands_result.multi_handedness:
@@ -62,18 +64,21 @@ class LandmarkDetector:
                 )
 
         pose: list[Point3D] | None = None
-        if pose_result.pose_landmarks:
-            pose = [
-                Point3D(x=p.x, y=p.y, z=p.z, visibility=p.visibility)
-                for i, p in enumerate(pose_result.pose_landmarks.landmark)
-                if i in self._POSE_UPPER_BODY_INDICES
-            ]
+        if self._pose is not None:
+            pose_result = self._pose.process(rgb_image)
+            if pose_result.pose_landmarks:
+                pose = [
+                    Point3D(x=p.x, y=p.y, z=p.z, visibility=p.visibility)
+                    for i, p in enumerate(pose_result.pose_landmarks.landmark)
+                    if i in self._POSE_UPPER_BODY_INDICES
+                ]
 
         return FrameLandmarks(timestamp_ms=int(time.time() * 1000), hands=hands, pose=pose)
 
     def close(self) -> None:
         self._hands.close()
-        self._pose.close()
+        if self._pose is not None:
+            self._pose.close()
         logger.info("LandmarkDetector released MediaPipe resources")
 
 

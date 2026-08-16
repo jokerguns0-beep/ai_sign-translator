@@ -20,7 +20,7 @@ class Config(BaseSettings):
 
     # --- Gemini ---
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-2.5-flash"
+    gemini_model: str = "gemini-1.5-pro"
 
     # --- App ---
     app_env: str = "development"
@@ -28,8 +28,8 @@ class Config(BaseSettings):
     cors_origins: str = "http://localhost:3000"
 
     # --- Gesture sequence buffer ---
-    sequence_window_min: int = 15
-    sequence_window_max: int = 25
+    sequence_window_min: int = 30
+    sequence_window_max: int = 60
     frame_sample_rate: int = 2  # process every Nth frame to save CPU
 
     # --- MediaPipe ---
@@ -40,6 +40,11 @@ class Config(BaseSettings):
     # 0 = "lite" model (~10x lighter than complexity=1) - critical on
     # memory-constrained hosting like Render's free tier (512MB).
     mp_pose_model_complexity: int = 0
+    # Pose gives useful *context* (shoulders/torso) but roughly doubles
+    # per-frame CPU cost for information that's secondary to hand shape/
+    # motion. On very CPU-constrained hosts (Render free tier: ~0.1 CPU),
+    # set this to false via env to cut per-frame latency significantly.
+    mp_pose_enabled: bool = True
     # Frame width MediaPipe actually processes - frames are downscaled to
     # this before detection, independent of the camera's native resolution.
     frame_target_width: int = 480
