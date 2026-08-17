@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, Send, Trash2 } from "lucide-react";
+import { Volume2, Send, Trash2, Hand } from "lucide-react";
 import { useSpeech } from "@/hooks/useSpeech";
 import { REPLY_CATEGORIES } from "@/lib/replyPhrases";
 
@@ -12,11 +12,23 @@ interface SentItem {
   timestamp: number;
 }
 
+function spreadTheSignUrl(phrase: string): string {
+  // Spreadthesign is a verified multilingual sign-language video
+  // dictionary (610,000+ signed videos, covers Russian Sign Language) -
+  // we link out to it rather than generating our own sign depictions,
+  // since an incorrect or fabricated sign could genuinely mislead a
+  // real conversation. Its search works best on single words, so we
+  // take the first significant word of the phrase.
+  const firstWord = phrase.split(/\s+/)[0].replace(/[^\p{L}]/gu, "");
+  return `https://www.spreadthesign.com/ru.ru/search/?q=${encodeURIComponent(firstWord)}`;
+}
+
 export default function ReplyPage() {
   const [displayText, setDisplayText] = useState("");
   const [customText, setCustomText] = useState("");
   const [activeCategory, setActiveCategory] = useState(REPLY_CATEGORIES[0].id);
   const [history, setHistory] = useState<SentItem[]>([]);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
 
   const speech = useSpeech();
 
@@ -24,10 +36,10 @@ export default function ReplyPage() {
     (text: string) => {
       if (!text.trim()) return;
       setDisplayText(text);
-      speech.speak(text);
+      if (voiceEnabled) speech.speak(text);
       setHistory((prev) => [{ id: crypto.randomUUID(), text, timestamp: Date.now() }, ...prev].slice(0, 30));
     },
-    [speech]
+    [speech, voiceEnabled]
   );
 
   const sendCustom = () => {
@@ -46,6 +58,10 @@ export default function ReplyPage() {
         <h1 className="font-display text-2xl md:text-3xl font-medium text-white">
           Выберите ответ — покажите экран собеседнику
         </h1>
+        <p className="font-body text-sm text-graphite-600 mt-2 max-w-2xl">
+          Текст на экране — самый надёжный способ ответить: его точно можно прочитать. Рядом с каждой фразой есть
+          ссылка на проверенный видео-словарь жестов Spreadthesign — если хотите показать жест сами, а не только текст.
+        </p>
       </header>
 
       {/* Large display - this is the screen shown to the deaf/hard-of-hearing person */}
@@ -64,10 +80,25 @@ export default function ReplyPage() {
             </motion.p>
           ) : (
             <p className="font-body text-graphite-600 text-lg relative">
-              Выберите фразу ниже или напишите свою — она появится здесь крупным текстом и озвучится
+              Выберите фразу ниже или напишите свою — она появится здесь крупным текстом
             </p>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* Voice toggle - explicit opt-in, since it only helps bystanders, not the deaf recipient */}
+      <div className="mb-6 flex items-center justify-between rounded-xl bg-graphite-900/60 border border-graphite-800 px-4 py-2.5">
+        <span className="font-body text-xs text-graphite-600">
+          Озвучивать голосом тоже (полезно, только если рядом есть слышащий человек)
+        </span>
+        <button
+          onClick={() => setVoiceEnabled((v) => !v)}
+          className={`text-xs px-2.5 py-1 rounded-md font-mono shrink-0 ${
+            voiceEnabled ? "bg-signal-teal/15 text-signal-teal" : "bg-graphite-800 text-graphite-600"
+          }`}
+        >
+          {voiceEnabled ? "Вкл" : "Выкл"}
+        </button>
       </div>
 
       {/* Custom text input */}
@@ -111,14 +142,27 @@ export default function ReplyPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {category.phrases.map((phrase) => (
-              <button
+              <div
                 key={phrase}
-                onClick={() => send(phrase)}
-                className="group text-left px-4 py-3.5 rounded-xl bg-graphite-800/60 border border-graphite-700 hover:border-signal-teal/50 hover:bg-graphite-800 transition-colors flex items-center justify-between gap-3"
+                className="group flex items-center justify-between gap-2 px-4 py-3.5 rounded-xl bg-graphite-800/60 border border-graphite-700 hover:border-signal-teal/50 hover:bg-graphite-800 transition-colors"
               >
-                <span className="font-body text-sm text-white">{phrase}</span>
-                <Volume2 className="w-4 h-4 text-graphite-700 group-hover:text-signal-teal shrink-0 transition-colors" />
-              </button>
+                <button onClick={() => send(phrase)} className="flex-1 text-left flex items-center gap-2">
+                  <span className="font-body text-sm text-white">{phrase}</span>
+                  {voiceEnabled && (
+                    <Volume2 className="w-3.5 h-3.5 text-graphite-700 group-hover:text-signal-teal shrink-0" />
+                  )}
+                </button>
+                <a
+                  href={spreadTheSignUrl(phrase)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  title="Посмотреть жест на Spreadthesign"
+                  className="shrink-0 p-1.5 rounded-lg text-graphite-700 hover:text-signal-amber hover:bg-signal-amber/10 transition-colors"
+                >
+                  <Hand className="w-4 h-4" />
+                </a>
+              </div>
             ))}
           </div>
         </div>
