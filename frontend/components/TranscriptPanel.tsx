@@ -1,6 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
+import { MessagesSquare } from "lucide-react";
 import type { TranscriptItem } from "@/lib/types";
 
 interface TranscriptPanelProps {
@@ -56,6 +58,16 @@ export default function TranscriptPanel({
           <p className="font-body text-graphite-600">Покажите жест перед камерой…</p>
         )}
       </div>
+
+      {isConfirmed && currentText && (
+        <Link
+          href="/reply"
+          className="flex items-center justify-center gap-2 rounded-xl bg-signal-amber/10 border border-signal-amber/30 text-signal-amber py-2.5 font-body text-sm hover:bg-signal-amber/15 transition-colors"
+        >
+          <MessagesSquare className="w-4 h-4" />
+          Ответить собеседнику
+        </Link>
+      )}
 
       <div className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-2">
         <h3 className="font-mono text-[11px] text-graphite-600 uppercase tracking-wide sticky top-0 bg-graphite-900 pb-1">

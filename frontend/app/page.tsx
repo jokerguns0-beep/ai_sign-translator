@@ -77,21 +77,23 @@ export default function Home() {
     <main className="min-h-screen px-4 py-6 md:px-8 md:py-10 max-w-7xl mx-auto">
       <header className="mb-8 flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-xs text-signal-teal uppercase tracking-widest mb-2">
-            Перевод жестового языка · в реальном времени
+          <p className="font-mono text-[11px] text-signal-teal uppercase tracking-[0.2em] mb-2">
+            Русский жестовый язык · распознавание в реальном времени
           </p>
-          <h1 className="font-display text-3xl md:text-4xl font-medium">AI Sign Language Translator</h1>
+          <h1 className="font-display text-2xl md:text-3xl font-medium text-white">
+            Покажите жест — я переведу его в текст и озвучу
+          </h1>
         </div>
         <button
           onClick={() => setShowDebug((v) => !v)}
-          className="shrink-0 text-xs font-mono px-3 py-2 rounded-lg bg-graphite-900 border border-graphite-700 text-graphite-600 hover:text-signal-teal"
+          className="shrink-0 text-xs font-mono px-3 py-2 rounded-lg bg-graphite-900 border border-graphite-700 text-graphite-600 hover:text-signal-teal hover:border-signal-teal/40 transition-colors"
         >
           {showDebug ? "Скрыть журнал" : "Журнал соединения"}
         </button>
       </header>
 
       {showDebug && (
-        <div className="mb-6 rounded-xl border border-graphite-700 bg-graphite-950 p-4 max-h-64 overflow-y-auto">
+        <div className="mb-6 rounded-2xl border border-graphite-700 bg-graphite-950 p-4 max-h-64 overflow-y-auto">
           <p className="font-mono text-[11px] text-graphite-600 uppercase tracking-wide mb-2 sticky top-0">
             Журнал WebSocket-соединения (для диагностики)
           </p>
@@ -110,7 +112,7 @@ export default function Home() {
       )}
 
       {backendError && (
-        <div className="mb-6 rounded-xl border border-signal-coral/40 bg-signal-coral/10 px-4 py-3 text-sm text-signal-coral font-body">
+        <div className="mb-6 rounded-2xl border border-signal-coral/40 bg-signal-coral/10 px-4 py-3 text-sm text-signal-coral font-body">
           Ошибка сервера: {backendError}
         </div>
       )}
