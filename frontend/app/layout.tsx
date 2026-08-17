@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter, JetBrains_Mono } from "next/font/google";
+import { Golos_Text, Inter, JetBrains_Mono } from "next/font/google";
 import NavBar from "@/components/NavBar";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
+const golosText = Golos_Text({
   subsets: ["latin", "cyrillic"],
-  variable: "--font-space-grotesk",
+  variable: "--font-display",
   display: "swap",
 });
 const inter = Inter({
@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru">
       <body
-        className={`${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable} font-body bg-graphite-950 text-white antialiased min-h-screen`}
+        className={`${golosText.variable} ${inter.variable} ${jetbrainsMono.variable} font-body bg-graphite-950 text-white antialiased min-h-screen`}
       >
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
           <div className="absolute -top-40 -left-40 w-[32rem] h-[32rem] rounded-full bg-signal-teal/[0.07] blur-3xl" />
