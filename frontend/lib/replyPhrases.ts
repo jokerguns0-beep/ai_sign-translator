@@ -13,7 +13,7 @@ export const REPLY_CATEGORIES: ReplyCategory[] = [
   {
     id: "answers",
     label: "Ответы",
-    phrases: ["Да", "Нет", "Хорошо", "Не уверен(а)", "Секунду, я думаю"],
+    phrases: ["Да", "Нет", "Хорошо", "Нормально", "Плохо", "Не уверен(а)", "Секунду, я думаю"],
   },
   {
     id: "requests",
